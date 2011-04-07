@@ -1,0 +1,41 @@
+#inner-details {
+  font-size:12px;
+}
+
+span.close {
+	color:#FF5555;
+	cursor:pointer;
+	font-weight:bold;
+	margin-left:3px;
+}
+
+span.name {
+  cursor: pointer;
+}
+
+/*TOOLTIPS*/
+.tip {
+   text-align: left;
+   width:auto;
+   max-width:500px;
+}
+
+.tip-title {
+  font-size: 10px;
+  text-align:left;
+  margin-bottom:1px;
+  font-weight:bold;
+}
+
+.tip-text {
+	margin-top:3px;
+}
+
+.tip ul {
+  margin-left:10px;
+  margin-right:0;
+  margin-top:0;
+  margin-bottom:0;
+  list-style-position:inside;
+  padding:0;		
+}
