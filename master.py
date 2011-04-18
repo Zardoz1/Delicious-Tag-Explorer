@@ -1,17 +1,22 @@
 import os
+os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
+from google.appengine.dist import use_library
+use_library('django', '1.2' )
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext.webapp import template
 
 from TagVisualizer import TagVisualizerClass
+from TagVisualizer import BranchVisualizerClass
+from StaticVisualizer import StaticVisualizerClass
 
 class MainPage(webapp.RequestHandler):
     def get(self):
-        template_values = { 'name': 'Zardoz' }
+        template_values = { }
         dir = os.path.dirname(__file__)
-        path = os.path.join(dir, 'templates', 'BaseTemplate.html')
+        path = os.path.join(dir, 'templates', 'Start.html')
         self.response.out.write(template.render(path, template_values))
     #end
 # end
@@ -19,7 +24,9 @@ class MainPage(webapp.RequestHandler):
 
 application = webapp.WSGIApplication(
                                      [('/', MainPage),
-                                      ('/tags', TagVisualizerClass)],
+                                      ('/tags', TagVisualizerClass),
+                                      ('/tags/branch', BranchVisualizerClass),
+                                      ('/test', StaticVisualizerClass)],
                                       debug=True)
 
 

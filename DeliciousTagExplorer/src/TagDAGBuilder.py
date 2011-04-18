@@ -33,10 +33,11 @@ class TagVertex(MyVertex):
             if self.HasEdgeToVertex(otherVertex.key()) == False:
                 #AND ALSO if the other vertex already knows the edge to us then the
                 #edge between the two vertices is recorded in the db
-                #else neither they nor we 't know this edge yet so 
+                #else neither they nor we know this edge yet so 
                 #record it now as a link from us to the other 
                 if otherVertex.HasEdgeToVertex(self.key())== False:
                     edge = TagEdge()
+                    edge.myOwningVertex = self
                     edge.myOtherVertex = otherVertex
                     edge.edgeCount = count
                     edge.put()
@@ -44,17 +45,54 @@ class TagVertex(MyVertex):
                 #endif
             #endif
         #end AddEdge
-        
-        def GetAllConnectedVertices(self):
-            otherVertices = []
+
+        '''
+        Return the set of all adjacent vertices recorded by us
+        '''        
+        def GetMyEdges(self):
+            myEdges = {}
             for edgeKey in self.edges:
                 thisEdge = db.get(edgeKey)
-                t = (thisEdge.myOtherVertex.key().name(), thisEdge.edgeCount)
-                otherVertices.append(t) 
+                myEdges[thisEdge.myOtherVertex.key().name()] = thisEdge
+            #end for
+            return myEdges
+        #end GetEdges    
+
+        def GetMyAdjacentVertices(self):
+            otherVertices = {}
+            for edgeKey in self.edges:
+                thisEdge = db.get(edgeKey)
+                otherVertices[thisEdge.myOtherVertex.key().name()] = thisEdge.myOtherVertex
             #end foreach
             
             return otherVertices
-        #end GetAllConnectedVertices        
+        #end GetMyAdjacentVertices   
+        
+        def GetAdjacentVerticesRecordedElsewhere(self):
+            theirEdges = {}
+            query = TagEdge.all()
+            query.filter("myOtherVertex =", self)
+            
+            for edge in query:
+                theirEdges[edge.myOwningVertex.key().name()] = edge.myOwningVertex
+            #endfor    
+            return theirEdges
+        #end GetAdjacentVerticesRecordedElsewhere    
+        
+        '''
+        Return the set of all adjacent vertices recorded by us
+        PLUS all vertices that record us as being adjacent to them
+        '''        
+        def GetAllAdjacentVertices(self):
+            
+            # all vertices that WE record as being adjacent to us
+            myAdjacentVertices = self.GetMyAdjacentVertices()
+
+            # plus all vertices that record US as being adjacent to them
+            otherAdjacentVertices = self.GetAdjacentVerticesRecordedElsewhere()
+           
+            return dict(myAdjacentVertices, **otherAdjacentVertices)
+        #end GetAllAdjacentVertices
     
 #end class TagVertex
     
@@ -66,11 +104,10 @@ class TagDAGBuilderClass(db.Model):
         try:
             dict = json.loads(jsonString)
         except Exception:
-            # a if b else c
             logging.error("Failed parsing JSON string; " + (jsonString if jsonString is not None else "NULL"))
         #end try/catch   
         return dict
-    #end LoadJSONTagList   
+    #end LoadJSONTagList
     
     def StoreMasterTagList(self, jsonString):
         dict = {}
@@ -88,7 +125,7 @@ class TagDAGBuilderClass(db.Model):
         return dict
     #end StoreMasterTagList
     
-    def AddEdgesForTag(self, parentVertex, jsonString):
+    def AddEdgesForVertex(self, parentVertex, jsonString):
         dict = {}
         dict = self.LoadJSONTagList(jsonString)
 
@@ -108,12 +145,56 @@ class TagDAGBuilderClass(db.Model):
             parentVertex.put()
         else:
             logging.error("Bad or empty json string returned for edges to " + parentVertex.key().name())
-        #endif        
+        #endif
         
         return dict  
-    #end AddEdgesForTag
+    #end AddEdgesForVertex
     
-    def BuildTagDAG(self, user, tagSource):
+    def AddEdgesForTag(self, parentTagName, jsonString):
+        parentVertex = self.GetVertex(parentTagName)
+        if parentVertex is not None:    
+            self.AddEdgesForVertex(parentVertex, jsonString)
+        else:
+            logging.error("No parent vertex to add edges to for tag " + parentTagName)
+        #endif                
+    #end AddEdgesForTag    
+     
+    def GetCompleteVertexSet(self):
+        return TagVertex.all()
+    #end GetCompleteVertexSet 
+    
+    def GetVertex(self, tagName):
+        vertexKey = db.Key.from_path("TagVertex", tagName)
+        return db.get(vertexKey)
+    #end GetVertex     
+    
+    def GetEdge(self, edgeKey):
+        return db.get(edgeKey)
+    #end GetEdge     
+
+    def GetDAGSubset(self, startTagName, maxDepth):
+        vertexDict = {}
+        startVertex = self.GetVertex(startTagName)
+        self.VertexWalk(startVertex, vertexDict, 1, maxDepth)
+        return vertexDict
+    #end GetConnectedVertexSet
+    
+    def VertexWalk(self, parentVertex, vertexDict, currentDepth, maxDepth):
+            
+        vertexDict[parentVertex.key().name()] = parentVertex
+        
+        if maxDepth > 0 and currentDepth < maxDepth:
+            adjacentVertices = parentVertex.GetAllAdjacentVertices()
+            for adjacentVertexObject in adjacentVertices.values():
+                self.VertexWalk(adjacentVertexObject, vertexDict, currentDepth + 1, maxDepth)
+            #endfor
+        #endif            
+
+    '''
+    This method build the complete tag graph, fetching all tags, then all links for
+    each of those tags
+    '''    
+    def BuildCompleteTagDAG(self, user, tagSource):
         # get a list of all tags
         tagsetString = tagSource.FetchMasterTagList(user)
         tagsetDict = self.StoreMasterTagList(tagsetString)
@@ -127,22 +208,49 @@ class TagDAGBuilderClass(db.Model):
                 if parentVertex != None:
                     linkedTagSetString = tagSource.FetchLinkedTagList(user, tag)
                     if len(linkedTagSetString) > 1:
-                        self.AddEdgesForTag(parentVertex, linkedTagSetString)
+                        self.AddEdgesForVertex(parentVertex, linkedTagSetString)
                     else:
                         logging.info("Failed fetching lined tags for " + tag)    
                     #endif    
                 else:
                     logging.info("No parent vertex to fetch linked tags for parent tag " + tag)
                 #endif
-                #end foreach
+            #end foreach
         else:
                 logging.info("Failed fetching master tag list for user " + user)
         #endif                
     #end BuildTagDAG
+    
+    def DumpDAGToJsonString(self):
+        allTags = self.GetCompleteVertexSet()
+        nodes = []
+        for tag in allTags:
+            node = {}
+            node["id"] = tag.key().name()
+            node["name"] = tag.key().name()
+            
+            data = {}
+            data["count"] = tag.ttlCount
+            node["data"] = data
+            
+            adjacencies = []
+            for edgeKey in tag.edges:
+                thisEdge = db.get(edgeKey)
+                adjacency = {}
+                data = {}
+                adjacency["nodeTo"] = thisEdge.myOtherVertex.key().name()
+                data["count"] = thisEdge.edgeCount
+                adjacency["data"] = data
+                
+                adjacencies.append(adjacency)
+            #end for (edges) 
+            node["adjacencies"] = adjacencies   
+            nodes.append(node)
+        #end for (nodes)   
         
-    def GetTagSet(self):
-        return TagVertex.all()
-    #end GetTagSet        
-
+        jsonString = json.dumps(nodes)
+        return jsonString
+    #end DumpDAGToJson      
+                
     #end class TagDAGBuilderClass
 #eof            

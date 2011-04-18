@@ -116,15 +116,9 @@ function init(){
       //Add also a click handler to nodes
       onClick: function(node) {
         if(!node) return;
-        // Build the right column relations list.
-        // This is done by traversing the clicked node connections.
-        var html = "<h4>" + node.name + "</h4><b> connections:</b><ul><li>",
-            list = [];
-        node.eachAdjacency(function(adj){
-          list.push(adj.nodeTo.name);
-        });
-        //append connections information
-        $jit.id('inner-details').innerHTML = html + list.join("</li><li>") + "</li></ul>";
+			
+		url = "http://localhost:8080/tags/branch?parent=" + encodeURIComponent(node.name)
+		window.location.replace(url)	
       }
     },
     //Number of iterations for the FD algorithm

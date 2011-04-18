@@ -9,14 +9,6 @@ represent nodes and edges.
 
 from google.appengine.ext import db
 
-class MyEdge(db.Model):    
-    #variables
-        myOtherVertex = db.ReferenceProperty()
-    #methods
-        def __init__(self, parent=None, key_name=None, **kwds):
-            db.Model.__init__(self, parent, key_name, **kwds)
-        #end init    
-#class MyEdge    
 
 class MyVertex(db.Model):
     #variables
@@ -27,6 +19,22 @@ class MyVertex(db.Model):
         #end init
 
         def GetEdgeToVertex(self, otherVertexKey):
+            edge = self.GetEdgeWorker(otherVertexKey)
+            if edge is None:
+                raise Exception()
+            #endif
+            return edge    
+        #end GetEdgeToVertex        
+        
+        def HasEdgeToVertex(self, otherVertexKey):
+            if self.GetEdgeWorker(otherVertexKey) == None:
+                return False
+            else:
+                return True
+            #endif
+        #end HasEdgeToVertex        
+        
+        def GetEdgeWorker(self, otherVertexKey):
             for edgeKey in self.edges:
                 edge = db.get(edgeKey)
                 if edge.myOtherVertex.key() == otherVertexKey:
@@ -34,16 +42,17 @@ class MyVertex(db.Model):
                 #endif    
             #endfor  
             return None
-        #end GetEdge        
-        
-        def HasEdgeToVertex(self, otherVertexKey):
-            if self.GetEdgeToVertex(otherVertexKey) == None:
-                return False
-            else:
-                return True
-            #endif
-        #end HasEdge        
-        
+        #end EdgeToVertexWorker   
 #end class MyVertex
+
+class MyEdge(db.Model):    
+    #variables
+        myOwningVertex = db.ReferenceProperty(MyVertex, None, "owner")
+        myOtherVertex = db.ReferenceProperty(MyVertex, None, "connectee")
+    #methods
+        def __init__(self, parent=None, key_name=None, **kwds):
+            db.Model.__init__(self, parent, key_name, **kwds)
+        #end init    
+#class MyEdge    
 
 #eof

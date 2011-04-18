@@ -73,7 +73,7 @@ class Test(unittest.TestCase):
     def Test_MakeDAGFromFileData(self):
         tv = TagVisualizerClass()
         tv.tsc = FileTagSourceClass("short")
-        tv.tdbc.BuildTagDAG("Zardoz59", tv.tsc)
+        tv.tdbc.BuildCompleteTagDAG("Zardoz59", tv.tsc)
         result = tv.DAGToJSONString_JitFormat()
         file = open("E:\\eclipse\\testworkspace\\zardoztestzone\\src\\DeliciousTagExplorer\\UnitTests\\shortTagDag\\shortTagDAGJitFormat.json", "w")
         file.write(result)
@@ -83,7 +83,7 @@ class Test(unittest.TestCase):
     def Test_MakeDAGFromFileData_Big(self):
         tv = TagVisualizerClass()
         tv.tsc = FileTagSourceClass("medium")
-        tv.tdbc.BuildTagDAG("Zardoz59", tv.tsc)
+        tv.tdbc.BuildCompleteTagDAG("Zardoz59", tv.tsc)
         result = tv.DAGToJSONString_JitFormat()
         file = open("E:\\eclipse\\testworkspace\\zardoztestzone\\src\\DeliciousTagExplorer\\UnitTests\\mediumTagDag\\mediumTagDAGJitFormat.json", "w")
         file.write(result)
@@ -101,7 +101,7 @@ class Test(unittest.TestCase):
     def Test_MakeDAGFromNetworkFetch(self):
         pass
         #tv = TagVisualizerClass()
-        #tv.tdbc.BuildTagDAG("Zardoz59", tv) 
+        #tv.tdbc.BuildCompleteTagDAG("Zardoz59", tv) 
         #result = tv.DAGToJSONString_ArborFormat()
         #result = tv.DAGToJSONString_JitFormat()
         #file = open("c:\\TEMP\\bigpicture.json", "w")

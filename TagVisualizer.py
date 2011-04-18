@@ -53,25 +53,61 @@ class NetworkTagSourceClass:
 
 #end NetworkTagSourceClass
 
+
 class TagVisualizerClass(webapp.RequestHandler):
     
     tdbc = TagDAGBuilderClass()
-    tsc = None
-        
+    tsc = NetworkTagSourceClass()
+      
     def get(self):
-        self.tsc = NetworkTagSourceClass()
-        #self.tdbc.BuildTagDAG("Zardoz59", self.tsc) 
-        
-        #file = open("E:\\eclipse\\testworkspace\\zardoztestzone\\src\\DeliciousTagExplorer\\UnitTests\\shortTagDag\\shortTagDAGJitFormat.json", "r")
-        file = open("E:\\eclipse\\testworkspace\\zardoztestzone\\src\\DeliciousTagExplorer\\UnitTests\\mediumTagDag\\mediumTagDAGJitFormat.json", "r")
+       
+        try:        
+            # get a list of all tags
+            tagsetString = self.tsc.FetchMasterTagList("Zardoz59")
+            tagsetDict = self.tdbc.StoreMasterTagList(tagsetString)
+            
+            jsonstring = ""
+            
+            if tagsetDict.has_key("6mm") :
+                testVertexKey = db.Key.from_path("TagVertex", "6mm")
+                testVertex = db.get(testVertexKey)
+                
+                nodes = []
+                node = {}
+                node["id"] = testVertex.key().name()
+                node["name"] = testVertex.key().name()
+                    
+                data = {}
+                data["count"] = testVertex.ttlCount
+                node["data"] = data
+                    
+                adjacencies = []
+                for edgeKey in testVertex.edges:
+                    thisEdge = db.get(edgeKey)
+                    adjacency = {}
+                    data = {}
+                    adjacency["nodeTo"] = thisEdge.myOtherVertex.key().name()
+                    data["count"] = thisEdge.edgeCount
+                    adjacency["data"] = data
+                    
+                    adjacencies.append(adjacency)
+                #end for (edges) 
+                node["adjacencies"] = adjacencies   
+                nodes.append(node)
+                
+                jsonString = json.dumps(nodes)
+    
+            #endif
+            
+            stuff = { 'tagDAGString': jsonString }
+            dir = os.path.dirname(__file__)
+            path = os.path.join(dir, 'templates', 'visualizer.html')
+            self.response.out.write(template.render(path, stuff))
+        except Exception:
+            self.error(404)
+            self.response.out.write('Dewd didn\'t your mother tell you not to feck around with urls and query strings?')
+        #end try/catch   
 
-        result = file.read()
-        file.close()
-        stuff = { 'tagDAGString': result }
-        
-        dir = os.path.dirname(__file__)
-        path = os.path.join(dir, 'templates', 'visualizer.html')
-        self.response.out.write(template.render(path, stuff))
     #end get    
 
     '''
@@ -91,7 +127,7 @@ class TagVisualizerClass(webapp.RequestHandler):
     '''
     def DAGToJSONString_ArborFormat(self):
         
-        allTags = self.tdbc.GetTagSet()
+        allTags = self.tdbc.GetCompleteVertexSet()
         
         #the structure to write out
         nodes = {}
@@ -172,12 +208,10 @@ class TagVisualizerClass(webapp.RequestHandler):
         }
     ]
     '''
-    def DAGToJSONString_JitFormat(self):
+    def DAGToJSONString_JitFormat(self, vertices):
         
-        allTags = self.tdbc.GetTagSet()
-
         nodes = []
-        for tag in allTags:
+        for tag in vertices:
             node = {}
             node["id"] = tag.key().name()
             node["name"] = tag.key().name()
@@ -204,8 +238,35 @@ class TagVisualizerClass(webapp.RequestHandler):
         jsonString = json.dumps(nodes)
         return jsonString
     #end DAGToJSONString_JitFormat
-
-    
 #end class TagVisualizer
 
+
+class BranchVisualizerClass(TagVisualizerClass):
+    
+    def get(self):
+
+        parent = self.request.get("parent")
+        
+        try:
+            if parent and len(parent) > 0:
+                data = self.tsc.FetchLinkedTagList("Zardoz59", parent)
+                self.tdbc.AddEdgesForTag(parent, data)
+    
+                vertices = self.tdbc.GetDAGSubset("6mm", 0)
+                jsonString = self.DAGToJSONString_JitFormat(vertices.values())
+                
+                stuff = { 'tagDAGString': jsonString }
+                dir = os.path.dirname(__file__)
+                path = os.path.join(dir, 'templates', 'visualizer.html')
+                self.response.out.write(template.render(path, stuff))
+            #endif
+        except Exception:
+            self.error(404)
+            self.response.out.write('Dewd didn\'t your mother tell you not to feck around with urls and query strings?')
+            logging.error("Failed extending graph for start tag: " + parent)
+        #end try/catch   
+  
+    #end get    
+    
+#end class BranchVisualuzerClass
 #eof
