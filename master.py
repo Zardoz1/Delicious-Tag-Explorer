@@ -2,7 +2,7 @@ import os
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
 from google.appengine.dist import use_library
-use_library('django', '1.2' )
+use_library('django', '0.96' )
 
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
@@ -24,7 +24,7 @@ class MainPage(webapp.RequestHandler):
 
 application = webapp.WSGIApplication(
                                      [('/', MainPage),
-                                      ('/tags', TagVisualizerClass),
+                                      ('/startTagSelector', TagVisualizerClass),
                                       ('/tags/branch', BranchVisualizerClass),
                                       ('/test', StaticVisualizerClass)],
                                       debug=True)

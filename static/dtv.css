@@ -24,6 +24,10 @@ html, body {
     background-color:#c0c0c0;
 }
 
+.hidden {
+	display: none;
+}
+
 div#start {
 	width:80%;
 	margin:50px;
@@ -35,6 +39,7 @@ div#formcontainer {
 	width: 420px;
 	margin-left:40px;
 	margin-top:20px;
+	float:left;
 }
 
 
@@ -49,4 +54,12 @@ div#formcontainer form label {
 	float:left;
 	text-align:left;
 	margin-right: 5px;
+}
+
+div#comments {
+	margin-left: 40px;
+	margin-top: 20px;
+	float:left;
+	width: 500px;
+	display: none;
 }

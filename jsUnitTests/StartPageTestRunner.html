@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+	<head>	
+		<title>Jasmine Test Runner For Start Page Functionality</title>
+		<script type="text/javascript" src="../jsUnitTests/lib/jasmine-1.0.2/jasmine.js"></script>
+        <script type="text/javascript" src="../jsUnitTests/lib/jasmine-1.0.2/jasmine-html.js"></script>
+        <script type="application/javascript" src="../js/jquery-1.5.1.min.js"></script>
+        <script type="application/javascript" src="../js/jquery_form.js"></script>
+        <script type="application/javascript" src="../js/jquery-ui-1.8.11.custom.min.js"></script>
+        <script type="text/javascript" src="../jsUnitTests/lib/jasmine jQuery/jasmine-jquery.js"></script>
+        <link rel="stylesheet" type="text/css" href="../jsUnitTests/lib/jasmine-1.0.2/jasmine.css"></link>
+    
+        <!-- include source files here... -->
+        <script type="text/javascript" src="../js/start.js"></script>
+    
+        <!-- include spec files here... -->
+        <script type="text/javascript" src="../jsUnitTests/spec/StartPageTests.js"></script>
+
+	</head>
+	<body>
+		<script type="text/javascript">
+		  jasmine.getEnv().addReporter(new jasmine.TrivialReporter());
+		  jasmine.getEnv().execute();
+		</script>
+
+		<div id="formcontainer">
+			<form id="Starter" action="fetchMasterTags" method="post">
+				<div class="clearfix">
+					<label for="getUserName">Enter your Delicious User Name:</label>
+					<input type="text" name="getUserName"/>
+				</div>	
+				<div class="clearfix">	
+					<input id="okbutton" type="submit" value="Goferit"/>
+				</div>	
+				<div class="clearfix">
+					<label for="tags">Select a Tag to Start: </label>
+					<input type="text" id="tags"/>
+				</div>
+			</form>
+		</div>
+	</body>
+</html>

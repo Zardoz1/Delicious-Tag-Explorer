@@ -51,17 +51,15 @@ class FileTagSourceClass:
 
 class Test(unittest.TestCase):
 
-
     def setUp(self):
         pass
-
 
     def tearDown(self):
         pass
 
-
-    def testName(self):
+    def TestName(self):
         pass
+    #end TestName
 
     def TestPythonURLEncodes(self):
         user1 = "Zardoz 59"
@@ -91,11 +89,12 @@ class Test(unittest.TestCase):
     #end Test_MakeDAGFromFileData_Big    
 
     def Test_QueryMasterTagsForUser(self):
-        ntsc = NetworkTagSourceClass() 
-        result = ntsc.FetchMasterTagList("Zardoz59")
-        file = open("c:\\TEMP\\mastertaglist.json", "w")
-        file.write(result)
-        file.close()
+        pass
+        #ntsc = NetworkTagSourceClass() 
+        #result = ntsc.FetchMasterTagList("Zardoz59")
+        #file = open("c:\\TEMP\\mastertaglist.json", "w")
+        #file.write(result)
+        #file.close()
     #end Test_QueryMasterTagsForUser   
 
     def Test_MakeDAGFromNetworkFetch(self):

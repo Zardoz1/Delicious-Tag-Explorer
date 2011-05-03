@@ -59,8 +59,8 @@ class TagVisualizerClass(webapp.RequestHandler):
     tdbc = TagDAGBuilderClass()
     tsc = NetworkTagSourceClass()
       
-    def get(self):
-       
+    def post(self):
+
         try:        
             # get a list of all tags
             tagsetString = self.tsc.FetchMasterTagList("Zardoz59")
@@ -106,9 +106,9 @@ class TagVisualizerClass(webapp.RequestHandler):
         except Exception:
             self.error(404)
             self.response.out.write('Dewd didn\'t your mother tell you not to feck around with urls and query strings?')
-        #end try/catch   
-
-    #end get    
+        #end try/catch
+        
+    #end post    
 
     '''
     ARBOR force-layout json format
@@ -249,6 +249,9 @@ class BranchVisualizerClass(TagVisualizerClass):
         
         try:
             if parent and len(parent) > 0:
+                
+                logging.info("Extending graph from start tag: " + parent)
+
                 data = self.tsc.FetchLinkedTagList("Zardoz59", parent)
                 self.tdbc.AddEdgesForTag(parent, data)
     

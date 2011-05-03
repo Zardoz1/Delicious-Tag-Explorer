@@ -1,0 +1,31 @@
+<div id="start">
+	<div class="blurb">
+		<h4>Start Here:</h4>
+		<p>Welcome to my Delicious Tag Visualizer. This application is designed to show the relationship between your tags. For any tag, 
+		it show the other tags that appear with it, and the number of times the two tags appear together. This application only uses
+		the public interface to Delcious. There is no need to enter your password or provide any information other than your user name.</p>
+		<p>Type in your Delicious user name here and hit OK. Your tag list will be fetched from Delicious. Then type in one of your tags in 
+		the text box to start the visualization process. The start tag text box works by auto-complete which helps prompt you, and the 
+		full list of your tags appears in the display box below.</p>
+		<p>Please be patient when using this application. Fetching tags and other data from Delicious is not exactly internet-fast, for some
+		reason. That is why the application works by building the graph from a start tag. Also the graphing package that I am using slows down as the graph gets bigger. I recommend using this app to explore 
+		reasonably closely related tags so that the graph does not get too big</p>
+	</div>
+	<div id="formcontainer">
+		<form id="Starter" action="fetchMasterTags" method="post">
+			<div class="clearfix">
+				<label for="getUserName">Enter your Delicious User Name:</label>
+				<input type="text" name="getUserName"/>
+			</div>	
+			<div class="clearfix">	
+				<input id="okbutton" type="submit" value="Goferit"/>
+			</div>	
+			<div class="clearfix">
+				<label for="tags">Select a Tag to Start: </label>
+				<input type="text" id="tags"/>
+			</div>
+		</form>
+	</div>
+	<div class="blurb" id="tagList">
+	</div>
+</div>

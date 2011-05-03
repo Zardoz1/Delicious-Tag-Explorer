@@ -10,6 +10,32 @@ var setFixtures = function(html) {
   jasmine.getFixtures().set(html);
 };
 
+var loadFixtureFromDisk = function(filePath) {
+	
+  try {
+    if (netscape.security.PrivilegeManager.enablePrivilege)
+      netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead");
+    } catch (e) { 
+       alert("Sorry, browser security settings won't let this program run."); 
+       return; 
+  }
+
+  var jf = jasmine.getFixtures();
+  var url = "file://" + filePath;
+  $.ajax({
+    async: false, // must be synchronous to guarantee that no tests are run before fixture is loaded
+    cache: false,
+    dataType: 'html',
+    url: url,
+    success: function(data) {
+      jf.fixturesCache_[url] = data;
+    },
+	error: function(jqXHR, textStatus, chucky) {
+		alert(textStatus);
+	}
+  });
+};
+
 var sandbox = function(attributes) {
   return jasmine.getFixtures().sandbox(attributes);
 };
@@ -85,7 +111,10 @@ jasmine.Fixtures.prototype.loadFixtureIntoCache_ = function(relativeUrl) {
     url: url,
     success: function(data) {
       self.fixturesCache_[relativeUrl] = data;
-    }
+    },
+	error: function(jqXHR, textStatus, chucky) {
+		alert(textStatus);
+	}
   });
 };
 
