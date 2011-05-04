@@ -8,14 +8,17 @@ represent nodes and edges.
 '''
 
 from google.appengine.ext import db
+from MyMetaData import (MyUser)
 
 
 class MyVertex(db.Model):
     #variables
         edges = db.ListProperty(db.Key)
+        user = db.ReferenceProperty(MyUser)
     #methods
         def __init__(self, parent=None, key_name=None, **kwds):
             db.Model.__init__(self, parent, key_name, **kwds)
+            user = (None if parent == None else parent) 
         #end init
 
         def GetEdgeToVertex(self, otherVertexKey):
@@ -43,6 +46,11 @@ class MyVertex(db.Model):
             #endfor  
             return None
         #end EdgeToVertexWorker   
+        
+        def GetOwningUser(self):
+            return self.parent()
+        #end GetOwningUser    
+            
 #end class MyVertex
 
 class MyEdge(db.Model):    

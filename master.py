@@ -8,9 +8,10 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext.webapp import template
 
-from TagVisualizer import TagVisualizerClass
+#from TagVisualizer import TagVisualizerClass
 from TagVisualizer import BranchVisualizerClass
 from StaticVisualizer import StaticVisualizerClass
+from StartTagSelector import StartTagSelectorClass
 
 class MainPage(webapp.RequestHandler):
     def get(self):
@@ -24,7 +25,7 @@ class MainPage(webapp.RequestHandler):
 
 application = webapp.WSGIApplication(
                                      [('/', MainPage),
-                                      ('/startTagSelector', TagVisualizerClass),
+                                      ('/startTagSelector', StartTagSelectorClass),
                                       ('/tags/branch', BranchVisualizerClass),
                                       ('/test', StaticVisualizerClass)],
                                       debug=True)

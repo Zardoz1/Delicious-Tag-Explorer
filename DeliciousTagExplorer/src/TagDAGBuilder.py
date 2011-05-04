@@ -109,13 +109,13 @@ class TagDAGBuilderClass(db.Model):
         return dict
     #end LoadJSONTagList
     
-    def StoreMasterTagList(self, jsonString):
+    def StoreMasterTagList(self, myUser, jsonString):
         dict = {}
         dict = self.LoadJSONTagList(jsonString)
         
         if len(dict) > 0:
             for tag, count in dict.iteritems():
-                newVertex = TagVertex(None, tag)
+                newVertex = TagVertex(myUser, tag)
                 newVertex.ttlCount = count
                 newVertex.put()
             #end for
@@ -131,13 +131,24 @@ class TagDAGBuilderClass(db.Model):
 
         if dict is not None and len(dict) > 0:        
             for linkedtag, linkedcount in dict.iteritems():
+                otherVertexKey = None
+                #make sure we're looking only at tags owned by the same person
+                user = parentVertex.GetOwningUser()
+                if user is not None:
+                    #user must exist if we have a valid key
+                    otherVertexKey = db.Key.from_path("MyUser", user.key().name(), "TagVertex", linkedtag)
+                else:
+                    otherVertexKey = db.Key.from_path("TagVertex", linkedtag)    
+                #endif
+
                 # tag must exist since we have loaded the master list
-                otherVertexKey = db.Key.from_path("TagVertex", linkedtag)
                 otherVertex = db.get(otherVertexKey)
                 if otherVertex != None:
                     parentVertex.AddEdge(otherVertex, linkedcount)
                 else:
-                    logging.info("This parent tag seems to have no vertex in the db: " + linkedtag)
+                    logging.info("This parent tag seems to have no vertex in the db: " 
+                                 + linkedtag + "UserName: " 
+                                 + (user.name()if user is not None else "None"))
                 #endif    
             #end for  
         
@@ -157,14 +168,42 @@ class TagDAGBuilderClass(db.Model):
         else:
             logging.error("No parent vertex to add edges to for tag " + parentTagName)
         #endif                
-    #end AddEdgesForTag    
-     
+    #end AddEdgesForTag
+    
     def GetCompleteVertexSet(self):
-        return TagVertex.all()
+        allTags = []
+        tagQuery = TagVertex.all()
+        #this is the fetch that turns
+        #the query into actual tags
+        for tag in tagQuery:
+            allTags.append(tag)
+        #endfor    
+        return allTags
     #end GetCompleteVertexSet 
     
-    def GetVertex(self, tagName):
-        vertexKey = db.Key.from_path("TagVertex", tagName)
+    def GetCompleteVertexSetForNamedUser(self, userName):
+        user = MyUser.get_by_key_name(userName)
+        if user is not None:
+            allTags = []
+            q = TagVertex.all()
+            q.ancestor(user.key())
+            for tag in q:
+                allTags.append(tag)
+            #endfor
+            return allTags    
+        else:
+            logging.error("Failed getting vertex set; unknown user '" + userName + "'.")
+            return None
+        #endif        
+        
+    #end GetCompleteVertexSetForNamedUser   
+    
+    def GetVertex(self, userName, tagName):
+        if userName is not None:
+            vertexKey = db.Key.from_path("MyUser", userName, "TagVertex", tagName)
+        else:
+            vertexKey = db.Key.from_path("TagVertex", tagName)
+        #endif    
         return db.get(vertexKey)
     #end GetVertex     
     
@@ -172,9 +211,9 @@ class TagDAGBuilderClass(db.Model):
         return db.get(edgeKey)
     #end GetEdge     
 
-    def GetDAGSubset(self, startTagName, maxDepth):
+    def GetDAGSubset(self, userName, startTagName, maxDepth):
         vertexDict = {}
-        startVertex = self.GetVertex(startTagName)
+        startVertex = self.GetVertex(userName, startTagName)
         self.VertexWalk(startVertex, vertexDict, 1, maxDepth)
         return vertexDict
     #end GetConnectedVertexSet
@@ -194,19 +233,19 @@ class TagDAGBuilderClass(db.Model):
     This method build the complete tag graph, fetching all tags, then all links for
     each of those tags
     '''    
-    def BuildCompleteTagDAG(self, user, tagSource):
+    def BuildCompleteTagDAG(self, userName, tagSource):
         # get a list of all tags
-        tagsetString = tagSource.FetchMasterTagList(user)
+        tagsetString = tagSource.FetchMasterTagList(userName)
         tagsetDict = self.StoreMasterTagList(tagsetString)
         
         # for each tag get a list of connected tags
         if len(tagsetDict) > 0:
             for tag, count in tagsetDict.iteritems():
                 print tag
-                parentVertexKey = db.Key.from_path("TagVertex", tag)
+                parentVertexKey = db.Key.from_path("MyUser", userName, "TagVertex", tag)
                 parentVertex = db.get(parentVertexKey)
                 if parentVertex != None:
-                    linkedTagSetString = tagSource.FetchLinkedTagList(user, tag)
+                    linkedTagSetString = tagSource.FetchLinkedTagList(userName, tag)
                     if len(linkedTagSetString) > 1:
                         self.AddEdgesForVertex(parentVertex, linkedTagSetString)
                     else:
@@ -217,7 +256,7 @@ class TagDAGBuilderClass(db.Model):
                 #endif
             #end foreach
         else:
-                logging.info("Failed fetching master tag list for user " + user)
+                logging.info("Failed fetching master tag list for userName " + userName)
         #endif                
     #end BuildTagDAG
     

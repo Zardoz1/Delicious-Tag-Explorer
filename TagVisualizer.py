@@ -17,7 +17,6 @@ from django.utils import simplejson as json
 
 from TagDAGBuilder import TagDAGBuilderClass
 
-
 class NetworkTagSourceClass:
 
     baseurl = "http://feeds.delicious.com/v2/json/tags/"
@@ -60,7 +59,7 @@ class TagVisualizerClass(webapp.RequestHandler):
     tsc = NetworkTagSourceClass()
       
     def post(self):
-
+        
         try:        
             # get a list of all tags
             tagsetString = self.tsc.FetchMasterTagList("Zardoz59")
@@ -103,9 +102,9 @@ class TagVisualizerClass(webapp.RequestHandler):
             dir = os.path.dirname(__file__)
             path = os.path.join(dir, 'templates', 'visualizer.html')
             self.response.out.write(template.render(path, stuff))
-        except Exception:
+        except Exception, data:
+            logging.error("TagVisualizerClass::post exception raised: " + str(data))
             self.error(404)
-            self.response.out.write('Dewd didn\'t your mother tell you not to feck around with urls and query strings?')
         #end try/catch
         
     #end post    
@@ -125,6 +124,7 @@ class TagVisualizerClass(webapp.RequestHandler):
         "_": "test graph"
     }
     '''
+        
     def DAGToJSONString_ArborFormat(self):
         
         allTags = self.tdbc.GetCompleteVertexSet()
@@ -263,10 +263,10 @@ class BranchVisualizerClass(TagVisualizerClass):
                 path = os.path.join(dir, 'templates', 'visualizer.html')
                 self.response.out.write(template.render(path, stuff))
             #endif
-        except Exception:
+        except Exception, data:
+            logging.error("Failed extending graph for start tag: " + parent + " ")
+            logging.error("BranchVisualizerClass::get Exception raised: " + str(data))
             self.error(404)
-            self.response.out.write('Dewd didn\'t your mother tell you not to feck around with urls and query strings?')
-            logging.error("Failed extending graph for start tag: " + parent)
         #end try/catch   
   
     #end get    
