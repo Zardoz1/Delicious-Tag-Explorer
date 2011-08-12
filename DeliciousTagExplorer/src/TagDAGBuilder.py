@@ -4,8 +4,6 @@ Created on 15/02/2011
 '''
 
 import logging
-import time
-from google.appengine.ext import db
 from django.utils import simplejson as json
 from MyDAG import *
 
@@ -161,12 +159,14 @@ class TagDAGBuilderClass(db.Model):
         return dict  
     #end AddEdgesForVertex
     
-    def AddEdgesForTag(self, parentTagName, jsonString):
-        parentVertex = self.GetVertex(parentTagName)
+    def AddEdgesForTag(self, userName, parentTagName, jsonString):
+        parentVertex = self.GetVertex(userName, parentTagName)
         if parentVertex is not None:    
             self.AddEdgesForVertex(parentVertex, jsonString)
         else:
-            logging.error("No parent vertex to add edges to for tag " + parentTagName)
+            msgOfDoom = "No parent vertex to add edges to for tag " + parentTagName + ". User: " + userName
+            logging.error(msgOfDoom)
+            raise Exception(msgOfDoom)
         #endif                
     #end AddEdgesForTag
     
@@ -233,19 +233,19 @@ class TagDAGBuilderClass(db.Model):
     This method build the complete tag graph, fetching all tags, then all links for
     each of those tags
     '''    
-    def BuildCompleteTagDAG(self, userName, tagSource):
+    def BuildCompleteTagDAG(self, user, tagSource):
         # get a list of all tags
-        tagsetString = tagSource.FetchMasterTagList(userName)
-        tagsetDict = self.StoreMasterTagList(tagsetString)
+        tagsetString = tagSource.FetchMasterTagList(user.key().name())
+        tagsetDict = self.StoreMasterTagList(user, tagsetString)
         
         # for each tag get a list of connected tags
         if len(tagsetDict) > 0:
             for tag, count in tagsetDict.iteritems():
                 print tag
-                parentVertexKey = db.Key.from_path("MyUser", userName, "TagVertex", tag)
+                parentVertexKey = db.Key.from_path("MyUser", user.key().name(), "TagVertex", tag)
                 parentVertex = db.get(parentVertexKey)
                 if parentVertex != None:
-                    linkedTagSetString = tagSource.FetchLinkedTagList(userName, tag)
+                    linkedTagSetString = tagSource.FetchLinkedTagList(user.key().name(), tag)
                     if len(linkedTagSetString) > 1:
                         self.AddEdgesForVertex(parentVertex, linkedTagSetString)
                     else:
@@ -256,7 +256,7 @@ class TagDAGBuilderClass(db.Model):
                 #endif
             #end foreach
         else:
-                logging.info("Failed fetching master tag list for userName " + userName)
+                logging.info("Failed fetching master tag list for userName " + user.key().name())
         #endif                
     #end BuildTagDAG
     

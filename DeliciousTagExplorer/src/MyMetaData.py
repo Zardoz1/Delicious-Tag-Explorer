@@ -9,11 +9,28 @@ from google.appengine.ext import db
 class MyUser(db.Model):
 
     displayName = db.StringProperty(db.Key)
+    #nb not a datastore property!
+    numTags = 0
+    #nb not a datastore property
+    tagCountAverage = 0
 
     def __init__(self, parent=None, key_name=None, **kwds):
         db.Model.__init__(self, parent, key_name, **kwds)
-        displayName = key_name
-    #end init    
+        self.displayName = key_name
+    #end init   
+    
+    def IncTagCount(self, number):
+        self.numTags = self.numTags + 1
+        self.tagCountAverage = self.tagCountAverage + number
+    #end IncTagCount   
+    
+    def GenerateTagStats(self):
+        if self.numTags == 0:
+            raise Exception("User " + self.key().name() + " has no tags!")
+        #endif
+        self.tagCountAverage = (0 if self.numTags == 0 else (self.tagCountAverage / self.numTags))
+        return self.tagCountAverage
+    #end GenerateTagStats 
 
 #end class MyUser
 

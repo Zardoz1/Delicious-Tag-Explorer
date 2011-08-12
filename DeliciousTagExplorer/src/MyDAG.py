@@ -18,7 +18,7 @@ class MyVertex(db.Model):
     #methods
         def __init__(self, parent=None, key_name=None, **kwds):
             db.Model.__init__(self, parent, key_name, **kwds)
-            user = (None if parent == None else parent) 
+            self.user = (None if parent == None else parent) 
         #end init
 
         def GetEdgeToVertex(self, otherVertexKey):

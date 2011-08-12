@@ -16,7 +16,9 @@
         <!-- Example File -->
 		<!-- Data block -->
 		<script language="JavaScript" type="text/javascript">
+		    {% autoescape off %}
 			var json = {{ tagDAGString }};
+            {% endautoescape %}
 		</script>
 		<script language="javascript" type="text/javascript" src="../js/visualizer.js"></script>
     </head>

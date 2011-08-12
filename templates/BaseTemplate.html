@@ -8,8 +8,11 @@
 	{% endblock %}	
 	</head>
 	{% block content %}
+	{% autoescape off %}
+
 	<body>
 			Test!
 	</body>
+	{% endautoescape %}
 	{% endblock %}	
 </html>

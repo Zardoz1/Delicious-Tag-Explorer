@@ -2,8 +2,10 @@
 
 {% block scripts %}
 <link rel="stylesheet" type="text/css" href="../static/jqcloud.css" />
+<link rel="stylesheet" type="text/css" href="../static/jquery-ui-1.8.11.custom.css" />
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
 <script type="text/javascript" src="../js/jqcloud-0.1.8.js"></script>
+<script type="text/javascript" src="../js/jquery-ui-1.8.11.custom.min.js"></script>
 <script type="text/javascript">
       /*!
        * Create an array of objects to be passed to jQCloud, each representing a word in the cloud and specifying
@@ -19,16 +21,31 @@
        * url: a URL to which the word will be linked. It will be used as the href attribute of an HTML anchor.
        * title: an HTML title for the <span> that will contain the word(s)
        */
+	  {% autoescape off %}
+	  var availableTags = {{ autocompleteList }};
       var word_list = {{ tagList }};
+      {% endautoescape %}
+	  
       $(document).ready(function() {
         // Call jQCloud on a jQuery object passing the word list as the first argument. Chainability of methods is maintained.
         $("#example").jQCloud(word_list);
-      });
+		$("#tagSelector").autocomplete({ source: availableTags,
+                                         change: function(event, ui) {
+										 	 var req = "http://localhost:8080/tags/startTag" + "?startTag=" + ui.item.value;
+											 window.location.replace(req);
+										 } 		
+									   });
+        });
     </script>
 {% endblock %}	  
 
 {% block content %}
-
+	<div class="demo">
+		<div class="ui-widget">
+		<label for="tagSelector">Tags: </label>
+			<input id="tagSelector">
+		</div>
+	</div>
    <!-- You must explicitly specify the dimensions of the container element -->
     <div id="example" style="width: 1024px; height: 800px; position: relative;"></div>
 {% endblock %}

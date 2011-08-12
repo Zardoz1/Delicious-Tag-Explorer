@@ -3,60 +3,29 @@ Created on 01Mar2011
 @author: tbelcher
 '''
 
-
-import os
-import logging
-import urllib2
-import time
-
-from google.appengine.api.urlfetch_errors import *
 from google.appengine.ext import webapp
 from google.appengine.ext import db
 from google.appengine.ext.webapp import template
 from django.utils import simplejson as json
 
+from gaesessions import get_current_session
+
 from TagDAGBuilder import TagDAGBuilderClass
-
-class NetworkTagSourceClass:
-
-    baseurl = "http://feeds.delicious.com/v2/json/tags/"
-
-    def FetchMasterTagList(self, user):
-        url = self.baseurl + urllib2.quote(user)
-        logging.info(" > Fetching: " + url)
-        result = urllib2.urlopen(url)
-        return result.read()
-    #end FetchMasterTagList
-    
-    def FetchLinkedTagList(self, user, tag):
-        time.sleep(0.25)
-        url = self.baseurl + urllib2.quote(user) + "/" + urllib2.quote(tag, "")
-        logging.info(" > Fetching: " + url)
-        
-        while True:
-            count = 0
-            try:
-                result = urllib2.urlopen(url)
-                return result.read()
-            except (DownloadError, urllib2.HTTPError), e:
-                msg = "Failed Delicious Fetch Request. " + e.__str__() 
-                logging.error(msg)
-                time.sleep(5)
-                count = count + 1
-                if count > 5:
-                    return ""
-                #endif
-            #end try/catch                    
-        #end while    
-    #end FetchLinkedTagList
-
-#end NetworkTagSourceClass
-
+from TagSource import *
 
 class TagVisualizerClass(webapp.RequestHandler):
     
     tdbc = TagDAGBuilderClass()
-    tsc = NetworkTagSourceClass()
+    tsc = TagSourceFactory().Factory()
+    
+    def GetCurrentUser(self):
+        username = ""
+        session = get_current_session()
+        if session and session.has_key('name'):
+            username = session['name']
+        #endif
+        return username    
+    #end GetCurrentUser
       
     def post(self):
         
@@ -65,7 +34,7 @@ class TagVisualizerClass(webapp.RequestHandler):
             tagsetString = self.tsc.FetchMasterTagList("Zardoz59")
             tagsetDict = self.tdbc.StoreMasterTagList(tagsetString)
             
-            jsonstring = ""
+            jsonString = ""
             
             if tagsetDict.has_key("6mm") :
                 testVertexKey = db.Key.from_path("TagVertex", "6mm")
@@ -241,28 +210,63 @@ class TagVisualizerClass(webapp.RequestHandler):
 #end class TagVisualizer
 
 
+class StartVisualizerClass(TagVisualizerClass):
+    
+    def get(self):
+
+        startTagName = self.request.get("startTagName")
+        username = self.GetCurrentUser()
+        
+        try:
+            logging.info("Generating the start tag: " + startTagName + " for user: " + username)
+            jsonString = self.getWorker(startTagName, username, self.tsc)
+        
+            stuff = { 'tagDAGString': jsonString }
+            dir = os.path.dirname(__file__)
+            path = os.path.join(dir, 'templates', 'visualizer.html')
+            self.response.out.write(template.render(path, stuff))
+
+        except Exception, data:
+            logging.error("Failed generating start tag: " + startTagName + "; user:" + username)
+            logging.error("StartVisualizerClass::get Exception raised: " + str(data))
+            self.error(404)
+        #end try/catch   
+  
+    #end get    
+    
+    def getWorker(self, startTagName, userName, tsc):
+        if startTagName and len(startTagName) > 0 and len(userName) > 0:
+            data = tsc.FetchLinkedTagList(userName, startTagName)
+            self.tdbc.AddEdgesForTag(userName, startTagName, data)
+            vertices = self.tdbc.GetDAGSubset(userName, startTagName, 2)
+            if len(vertices) < 1:
+                raise Exception("Internal error looking up adjacent tags of depth 1. Start tag = " + startTagName + ". User = " + userName)
+            #endif
+            jsonString = self.DAGToJSONString_JitFormat(vertices.values())
+            return jsonString
+        else:
+            raise Exception("Bad or empty user session or starting tag.")
+        #endif    
+    #end getWorker    
+    
+#end class StartVisualizerClass
+
+
 class BranchVisualizerClass(TagVisualizerClass):
     
     def get(self):
 
         parent = self.request.get("parent")
+        username = self.GetCurrentUser()
         
         try:
-            if parent and len(parent) > 0:
-                
-                logging.info("Extending graph from start tag: " + parent)
+            logging.info("Extending graph from start tag: " + parent + " for user: " + username)
+            jsonString = self.getWorker(parent, username, self.tsc)                    
+            stuff = { 'tagDAGString': jsonString }
 
-                data = self.tsc.FetchLinkedTagList("Zardoz59", parent)
-                self.tdbc.AddEdgesForTag(parent, data)
-    
-                vertices = self.tdbc.GetDAGSubset("6mm", 0)
-                jsonString = self.DAGToJSONString_JitFormat(vertices.values())
-                
-                stuff = { 'tagDAGString': jsonString }
-                dir = os.path.dirname(__file__)
-                path = os.path.join(dir, 'templates', 'visualizer.html')
-                self.response.out.write(template.render(path, stuff))
-            #endif
+            dir = os.path.dirname(__file__)
+            path = os.path.join(dir, 'templates', 'visualizer.html')
+            self.response.out.write(template.render(path, stuff))
         except Exception, data:
             logging.error("Failed extending graph for start tag: " + parent + " ")
             logging.error("BranchVisualizerClass::get Exception raised: " + str(data))
@@ -270,6 +274,18 @@ class BranchVisualizerClass(TagVisualizerClass):
         #end try/catch   
   
     #end get    
+
+    def getWorker(self, parentTagName, userName, tsc):
+        if parentTagName and userName and len(parentTagName) > 0 and len(userName) > 0:
+            data = tsc.FetchLinkedTagList(userName, parentTagName)
+            self.tdbc.AddEdgesForTag(userName, parentTagName, data)
+            vertices = self.tdbc.GetDAGSubset(userName, parentTagName, 1)
+            if len(vertices) < 1:
+                raise Exception("Internal error looking up adjacent tags of depth 1. Parent tag = " + parentTagName + ". User = " + userName)
+            #endif
+            jsonString = self.DAGToJSONString_JitFormat(vertices.values())
+            return jsonString
+    #end getWorker   
     
 #end class BranchVisualuzerClass
 #eof
